@@ -12,12 +12,30 @@ import (
 	"github.com/prettyletto/omagen/backend/internal/session"
 )
 
-// repeatedGradientStops mirrors bandedGradientLua's stop repetition so tests
-// can assert on the generated gradient without hardcoding the repeat count.
+// extractGradientColorsLine returns the "local active_border_color = ..."
+// line so tests can inspect the generated gradient's stop count directly.
+func extractGradientColorsLine(t *testing.T, hyprlandLua string) string {
+	t.Helper()
+	for _, line := range strings.Split(hyprlandLua, "\n") {
+		if strings.Contains(line, "active_border_color = {") {
+			return line
+		}
+	}
+	t.Fatalf("no active_border_color gradient line found in:\n%s", hyprlandLua)
+	return ""
+}
+
+// repeatedGradientStops mirrors evenBandGradientLua's stop repetition so
+// tests can assert on the generated gradient without hardcoding the repeat
+// count (which itself depends on len(colors), capped at 10 total stops).
 func repeatedGradientStops(colors ...string) string {
-	quoted := make([]string, 0, len(colors)*bandedGradientBandRepeat)
+	repeat := hyprlandMaxGradientStops / len(colors)
+	if repeat < 1 {
+		repeat = 1
+	}
+	quoted := make([]string, 0, len(colors)*repeat)
 	for _, color := range colors {
-		for i := 0; i < bandedGradientBandRepeat; i++ {
+		for i := 0; i < repeat; i++ {
 			quoted = append(quoted, fmt.Sprintf("%q", color))
 		}
 	}
@@ -162,13 +180,53 @@ func TestWriteHyprlandSpinsAccentGradient(t *testing.T) {
 			t.Fatalf("generated Cyberpunk Glitch Lua is invalid: %v\n%s", err, output)
 		}
 	}
+	want := fmt.Sprintf("colors = { %s }, angle = 0", repeatedGradientStops("rgb(aa33cc)", "rgb(4488dd)", "rgb(cc55ee)"))
 	for _, want := range []string{
-		`colors = { "rgb(aa33cc)", "rgb(4488dd)", "rgb(cc55ee)", "rgb(aa33cc)" }, angle = 0`,
+		want,
 		`hl.animation({ leaf = "borderangle", enabled = true, speed = 36, bezier = "linear", style = "loop" })`,
 	} {
 		if !strings.Contains(text, want) {
 			t.Errorf("generated spinning hyprland.lua missing %q:\n%s", want, text)
 		}
+	}
+}
+
+func TestWriteHyprlandSpinDoesNotPalindromeColors(t *testing.T) {
+	// A gradient that repeats its first color at the end puts the same color
+	// at both ends of Hyprland's border shader axis, which maps to two full
+	// sides of the window rather than a small slice -- reported live as one
+	// accent dominating ~90% of the border with the other reduced to a
+	// sliver. The stop list must end with the last color, not loop back.
+	dir := t.TempDir()
+	p := Palette{Foreground: "#e5e7eb", DarkForeground: "#72767d", Accent: "#aa33cc", Blue: "#4488dd", Magenta: "#cc55ee"}
+	if err := WriteHyprland(dir, p, "spin", 2, "native", "native", "native", "native"); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "hyprland.lua"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), `"rgb(cc55ee)", "rgb(aa33cc)" }`) {
+		t.Errorf("generated spinning hyprland.lua repeats the first accent at the end of the gradient:\n%s", data)
+	}
+}
+
+func TestWriteHyprlandSpinNeverExceedsHyprlandStopLimit(t *testing.T) {
+	p := Palette{
+		Foreground: "#e5e7eb", DarkForeground: "#72767d", Blue: "#4488dd", Magenta: "#cc55ee",
+		Accent: "#ff2d95", Accent2: "#2de0c8", Accent3: "#f5d90a", Accent4: "#7a5cff", Accent5: "#22c55e",
+	}
+	dir := t.TempDir()
+	if err := WriteHyprland(dir, p, "spin", 2, "native", "native", "native", "native"); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "hyprland.lua"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := extractGradientColorsLine(t, string(data))
+	if got := strings.Count(line, "rgb("); got > hyprlandMaxGradientStops {
+		t.Fatalf("generated spin gradient has %d stops, want <= %d (Hyprland's border shader caps at vec4 gradient[10]): %s", got, hyprlandMaxGradientStops, line)
 	}
 }
 
@@ -185,7 +243,7 @@ func TestWriteHyprlandSpinUsesCustomAccentsWhenSet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `colors = { "rgb(ff2d95)", "rgb(2de0c8)", "rgb(f5d90a)", "rgb(ff2d95)" }, angle = 0`
+	want := fmt.Sprintf("colors = { %s }, angle = 0", repeatedGradientStops("rgb(ff2d95)", "rgb(2de0c8)", "rgb(f5d90a)"))
 	if !strings.Contains(string(data), want) {
 		t.Errorf("generated spinning hyprland.lua missing custom-accent gradient %q:\n%s", want, data)
 	}
@@ -288,6 +346,10 @@ func TestWriteHyprlandDualUsesUpToFiveAccents(t *testing.T) {
 		repeatedGradientStops("rgb(ff2d95)", "rgb(2de0c8)", "rgb(f5d90a)", "rgb(7a5cff)", "rgb(22c55e)"))
 	if !strings.Contains(string(data), want) {
 		t.Errorf("generated dual hyprland.lua missing five-accent gradient %q:\n%s", want, data)
+	}
+	line := extractGradientColorsLine(t, string(data))
+	if got := strings.Count(line, "rgb("); got > hyprlandMaxGradientStops {
+		t.Fatalf("generated dual gradient has %d stops, want <= %d (Hyprland's border shader caps at vec4 gradient[10]): %s", got, hyprlandMaxGradientStops, line)
 	}
 }
 
