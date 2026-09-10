@@ -172,6 +172,28 @@ func TestWriteHyprlandSpinsAccentGradient(t *testing.T) {
 	}
 }
 
+func TestWriteHyprlandSpinUsesCustomAccentsWhenSet(t *testing.T) {
+	dir := t.TempDir()
+	p := Palette{
+		Foreground: "#e5e7eb", DarkForeground: "#72767d", Blue: "#4488dd", Magenta: "#cc55ee",
+		Accent: "#ff2d95", Accent2: "#2de0c8", Accent3: "#f5d90a",
+	}
+	if err := WriteHyprland(dir, p, "spin", 2, "native", "native", "native", "native"); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "hyprland.lua"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `colors = { "rgb(ff2d95)", "rgb(2de0c8)", "rgb(f5d90a)", "rgb(ff2d95)" }, angle = 0`
+	if !strings.Contains(string(data), want) {
+		t.Errorf("generated spinning hyprland.lua missing custom-accent gradient %q:\n%s", want, data)
+	}
+	if strings.Contains(string(data), "4488dd") || strings.Contains(string(data), "cc55ee") {
+		t.Errorf("generated spinning hyprland.lua should not fall back to Blue/Magenta once custom accents are set:\n%s", data)
+	}
+}
+
 func TestWriteHyprlandUsesConfiguredSpinSpeed(t *testing.T) {
 	dir := t.TempDir()
 	p := Palette{Foreground: "#e5e7eb", DarkForeground: "#72767d", Accent: "#aa33cc", Blue: "#4488dd", Magenta: "#cc55ee"}

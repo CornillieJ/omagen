@@ -221,10 +221,22 @@ func writeHyprlandWithAnimationsAndShell(themeDir string, p Palette, borderStyle
 	case "neon":
 		activeBorder = gradientLua(accent, hyprColor(p.Magenta), 0)
 	case "spin":
-		// A two-stop accent/blue gradient can be nearly monochromatic in
-		// extracted palettes. Add a contrasting magenta stop and repeat the
-		// accent so the loop has an obvious moving seam.
-		activeBorder = gradientLuaColors(0, accent, hyprColor(p.Blue), hyprColor(p.Magenta), accent)
+		if accents := p.ActiveAccents(); len(accents) >= 2 {
+			// User-authored extra accents take over the spinning gradient
+			// entirely, closing the loop by repeating the first accent so the
+			// rotation still has an obvious moving seam.
+			hyprAccents := make([]string, len(accents)+1)
+			for i, hex := range accents {
+				hyprAccents[i] = hyprColor(hex)
+			}
+			hyprAccents[len(accents)] = hyprAccents[0]
+			activeBorder = gradientLuaColors(0, hyprAccents...)
+		} else {
+			// A two-stop accent/blue gradient can be nearly monochromatic in
+			// extracted palettes. Add a contrasting magenta stop and repeat the
+			// accent so the loop has an obvious moving seam.
+			activeBorder = gradientLuaColors(0, accent, hyprColor(p.Blue), hyprColor(p.Magenta), accent)
+		}
 	case "dual":
 		// User-authored extra accents (up to 5 total), e.g. a Neon Drift scheme
 		// pairing pink and teal. Falls back to Magenta so the style still

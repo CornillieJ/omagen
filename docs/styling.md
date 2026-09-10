@@ -70,15 +70,17 @@ Window controls are:
 - **Active border:** Solid, Split Top, Split Bottom, Accent Blend, Neon Blend,
   Spinning Accent, or Multi accent. Neon Blend adds a soft compositor glow/halo
   and a continuously moving gradient around the focused window. Spinning
-  Accent keeps the gradient moving without the neon halo. Multi accent draws a
-  fixed 45° gradient across **Accent** plus up to four extra accents (**Accent
-  2**-**Accent 5**), added one at a time with **Add contrast** in Custom
-  colours (Palette step). The gradient splits evenly across however many are
-  set — two accents split 50/50, three split into thirds, and so on; each
-  boundary is a thin blend rather than an instant cut, since Hyprland's
-  gradient stops are always evenly spaced with no way to pin an exact
-  percentage. If no extra accent is ever set it falls back to a two-colour
-  gradient with the palette's Magenta role.
+  Accent keeps the gradient moving without the neon halo; if any extra accents
+  are set (see below) it animates through Accent plus all of them, otherwise
+  it animates through Accent, Blue, and Magenta as before. Multi accent draws
+  a **fixed, non-animated** 45° gradient across **Accent** plus up to four
+  extra accents (**Accent 2**-**Accent 5**), added one at a time with **Add
+  accent** in Custom colours (Palette step). Both styles split evenly across
+  however many accents are set — two split 50/50, three split into thirds, and
+  so on; each boundary is a thin blend rather than an instant cut, since
+  Hyprland's gradient stops are always evenly spaced with no way to pin an
+  exact percentage. If no extra accent is ever set, Multi accent falls back to
+  a two-colour gradient with the palette's Magenta role.
 - **Border thickness:** A slider starting at **Default** (inherit the active
   theme), followed by **None** and fixed 1–24 px values.
 - **Corner shape:** Five fixed presets — Native, Subtle, Soft, Rounded, and Pill.

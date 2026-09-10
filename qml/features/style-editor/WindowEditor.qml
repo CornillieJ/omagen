@@ -59,7 +59,7 @@ Item {
                 split_bottom: "An accent border with a stronger bottom edge for the focused window.",
                 blend: "A softer border that blends the accent into the window surface.",
                 neon: "A high-contrast accent border for a more luminous focused window.",
-                spin: "An animated accent border treatment for the focused window.",
+                spin: "An animated accent border treatment for the focused window. Cycles through any extra accents set in Custom colours, or Accent/Blue/Magenta if none are set.",
                 dual: "A fixed diagonal gradient across Accent plus up to 4 extra accents, split evenly. Add extra accents in Custom colours."
             },
             shape: {

@@ -35,7 +35,7 @@ Item {
 
     // Extra accents for the multi-accent border gradient (Window → Border
     // style → Dual accent). Accent is always present; these four are each
-    // optional and revealed one at a time via "Add contrast", contiguously
+    // optional and revealed one at a time via "Add accent", contiguously
     // from accent2 -- the gradient splits evenly across however many of
     // Accent + these are actually set.
     readonly property var extraAccentKeys: ["accent2", "accent3", "accent4", "accent5"]
@@ -684,7 +684,7 @@ Item {
                     Button {
                         Layout.preferredWidth: Style.space(120)
                         Layout.preferredHeight: Style.space(34)
-                        text: "Add contrast"
+                        text: "Add accent"
                         fontSize: Style.font.caption
                         foreground: root.foregroundColor
                         accent: root.accentColor
