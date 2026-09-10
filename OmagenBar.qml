@@ -1091,6 +1091,25 @@ Item {
         }
     }
 
+    // Belt-and-suspenders for specFile: every theme activation deletes and
+    // recreates the `current/theme` directory, which kills any inotify watch
+    // held on a path underneath it (confirmed empirically -- a watch on a
+    // file inside a directory that gets rm -rf'd never fires again, even once
+    // a new file exists at the same path). themeStateRefreshTimer already
+    // repairs this by reloading specFile whenever the stable `current`
+    // directory watch above fires, which re-arms specFile's own watcher
+    // against the new inode. This slow poll is a fallback only, in case a
+    // rapid burst of filesystem activity ever causes that directory event to
+    // be coalesced or dropped (e.g. an inotify queue overflow) -- reload() is
+    // cheap and a no-op when the spec is already current.
+    Timer {
+        id: themeStateSafetyPoll
+        interval: 10000
+        repeat: true
+        running: true
+        onTriggered: specFile.reload()
+    }
+
     Process {
         id: transparentForegroundProc
         stdout: SplitParser {
