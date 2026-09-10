@@ -23,9 +23,19 @@ func WriteColors(
 		"colors.toml",
 	)
 
-	var accent2Line string
-	if palette.Accent2 != "" {
-		accent2Line = fmt.Sprintf("accent2 = %q\n", palette.Accent2)
+	var extraAccentLines string
+	for _, extra := range []struct {
+		key   string
+		value string
+	}{
+		{"accent2", palette.Accent2},
+		{"accent3", palette.Accent3},
+		{"accent4", palette.Accent4},
+		{"accent5", palette.Accent5},
+	} {
+		if extra.value != "" {
+			extraAccentLines += fmt.Sprintf("%s = %q\n", extra.key, extra.value)
+		}
 	}
 
 	content := fmt.Sprintf(
@@ -93,7 +103,7 @@ bright_magenta = %q
 		palette.BrightBlue,
 		palette.BrightMagenta,
 	)
-	content += accent2Line
+	content += extraAccentLines
 
 	if err := fsutil.AtomicWriteFile(path, []byte(content), 0o644); err != nil {
 		return fmt.Errorf(

@@ -1,6 +1,7 @@
 package theme
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +11,18 @@ import (
 	"github.com/prettyletto/omagen/backend/internal/bar"
 	"github.com/prettyletto/omagen/backend/internal/session"
 )
+
+// repeatedGradientStops mirrors bandedGradientLua's stop repetition so tests
+// can assert on the generated gradient without hardcoding the repeat count.
+func repeatedGradientStops(colors ...string) string {
+	quoted := make([]string, 0, len(colors)*bandedGradientBandRepeat)
+	for _, color := range colors {
+		for i := 0; i < bandedGradientBandRepeat; i++ {
+			quoted = append(quoted, fmt.Sprintf("%q", color))
+		}
+	}
+	return strings.Join(quoted, ", ")
+}
 
 func TestWriteHyprlandMapsWindowControlsToHyprland(t *testing.T) {
 	dir := t.TempDir()
@@ -214,7 +227,8 @@ func TestWriteHyprlandDualUsesAccent2Gradient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := `colors = { "rgb(ff2d95)", "rgb(2de0c8)" }, angle = 45`; !strings.Contains(string(data), want) {
+	want := fmt.Sprintf("colors = { %s }, angle = 45", repeatedGradientStops("rgb(ff2d95)", "rgb(2de0c8)"))
+	if !strings.Contains(string(data), want) {
 		t.Errorf("generated dual hyprland.lua missing %q:\n%s", want, data)
 	}
 }
@@ -229,8 +243,55 @@ func TestWriteHyprlandDualFallsBackToMagentaWithoutAccent2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := `colors = { "rgb(ff2d95)", "rgb(cc55ee)" }, angle = 45`; !strings.Contains(string(data), want) {
+	want := fmt.Sprintf("colors = { %s }, angle = 45", repeatedGradientStops("rgb(ff2d95)", "rgb(cc55ee)"))
+	if !strings.Contains(string(data), want) {
 		t.Errorf("generated dual hyprland.lua missing fallback %q:\n%s", want, data)
+	}
+}
+
+func TestWriteHyprlandDualUsesUpToFiveAccents(t *testing.T) {
+	p := Palette{
+		Foreground: "#e5e7eb", DarkForeground: "#72767d", Magenta: "#cc55ee",
+		Accent: "#ff2d95", Accent2: "#2de0c8", Accent3: "#f5d90a", Accent4: "#7a5cff", Accent5: "#22c55e",
+	}
+	dir := t.TempDir()
+	if err := WriteHyprland(dir, p, "dual", 0, "native", "native", "native", "native"); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "hyprland.lua"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := fmt.Sprintf("colors = { %s }, angle = 45",
+		repeatedGradientStops("rgb(ff2d95)", "rgb(2de0c8)", "rgb(f5d90a)", "rgb(7a5cff)", "rgb(22c55e)"))
+	if !strings.Contains(string(data), want) {
+		t.Errorf("generated dual hyprland.lua missing five-accent gradient %q:\n%s", want, data)
+	}
+}
+
+func TestWriteHyprlandDualStopsAtFirstUnsetAccent(t *testing.T) {
+	// Accent4 is set but Accent3 is not, so ActiveAccents() should stop after
+	// Accent2 and ignore Accent3/Accent4 entirely -- the UI only ever
+	// adds/removes accents from the end, so this models stale/out-of-order
+	// overrides rather than an expected path.
+	p := Palette{
+		Foreground: "#e5e7eb", DarkForeground: "#72767d", Magenta: "#cc55ee",
+		Accent: "#ff2d95", Accent2: "#2de0c8", Accent4: "#7a5cff",
+	}
+	dir := t.TempDir()
+	if err := WriteHyprland(dir, p, "dual", 0, "native", "native", "native", "native"); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "hyprland.lua"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := fmt.Sprintf("colors = { %s }, angle = 45", repeatedGradientStops("rgb(ff2d95)", "rgb(2de0c8)"))
+	if !strings.Contains(string(data), want) {
+		t.Errorf("generated dual hyprland.lua missing two-accent gradient %q:\n%s", want, data)
+	}
+	if strings.Contains(string(data), "7a5cff") {
+		t.Errorf("generated dual hyprland.lua should not reference the out-of-sequence Accent4:\n%s", data)
 	}
 }
 

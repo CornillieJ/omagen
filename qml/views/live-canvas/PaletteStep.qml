@@ -26,13 +26,67 @@ Item {
     signal variantRequested(string variant)
     signal colorOverridesCommitted(var overrides)
 
-    readonly property var editableRoles: [
+    readonly property var baseRoles: [
         { key: "accent", label: "Accent", description: "Focus, controls, and the main visual signal." },
-        { key: "accent2", label: "Accent 2", description: "Second accent for the Dual accent border gradient (Window → Border style)." },
         { key: "background", label: "Background", description: "The base desktop and terminal surface." },
         { key: "foreground", label: "Foreground", description: "Readable text and icon colour." },
         { key: "selection", label: "Selection", description: "Highlights used by editors and interactive surfaces." }
     ]
+
+    // Extra accents for the multi-accent border gradient (Window → Border
+    // style → Dual accent). Accent is always present; these four are each
+    // optional and revealed one at a time via "Add contrast", contiguously
+    // from accent2 -- the gradient splits evenly across however many of
+    // Accent + these are actually set.
+    readonly property var extraAccentKeys: ["accent2", "accent3", "accent4", "accent5"]
+    readonly property var extraAccentLabels: ["Accent 2", "Accent 3", "Accent 4", "Accent 5"]
+    // Sensible, visually distinct starting colours for each newly added
+    // accent, mirroring the backend's own Accent2 fallback (Magenta).
+    readonly property var extraAccentFallbackKeys: ["magenta", "cyan", "blue", "green"]
+
+    function extraAccentIndex(key) {
+        return root.extraAccentKeys.indexOf(key)
+    }
+
+    // Raw "is this accent actually set" check -- unlike presetColor(), this
+    // does not fall back to a display default, so an unset extra accent
+    // reads as empty rather than as its preview colour.
+    function extraAccentValue(key) {
+        const staged = root.stagedColors || ({})
+        if (staged[key] !== undefined)
+            return String(staged[key]).toUpperCase()
+        const palette = root.paletteFor(root.selectedVariant)
+        return String((palette && palette[key]) || "").toUpperCase()
+    }
+
+    function activeExtraAccentCount() {
+        let count = 0
+        for (let i = 0; i < root.extraAccentKeys.length; i++) {
+            if (root.extraAccentValue(root.extraAccentKeys[i]) === "")
+                break
+            count++
+        }
+        return count
+    }
+
+    readonly property int extraAccentCount: root.activeExtraAccentCount()
+
+    function extraAccentRole(index) {
+        return {
+            key: root.extraAccentKeys[index],
+            label: root.extraAccentLabels[index],
+            description: "Extra accent for the multi-accent border gradient (Window → Border style)."
+        }
+    }
+
+    readonly property var editableRoles: {
+        const roles = [root.baseRoles[0]]
+        for (let i = 0; i < root.extraAccentCount; i++)
+            roles.push(root.extraAccentRole(i))
+        for (let i = 1; i < root.baseRoles.length; i++)
+            roles.push(root.baseRoles[i])
+        return roles
+    }
     readonly property var activeRole: root.editableRoles[root.activeRoleIndex]
         || root.editableRoles[0]
 
@@ -65,11 +119,13 @@ Item {
 
     function presetColor(roleKey) {
         const palette = root.paletteFor(root.selectedVariant)
-        if (roleKey === "accent2") {
-            // Mirrors the backend's Dual accent border fallback: an unset
-            // Accent 2 defaults to this palette's own Magenta role.
-            return root.paletteColor(palette, "accent2",
-                root.paletteColor(palette, "magenta", root.fallbackColor(roleKey)))
+        const extraIndex = root.extraAccentIndex(roleKey)
+        if (extraIndex >= 0) {
+            // Mirrors the backend's multi-accent border fallback: an unset
+            // extra accent defaults to this palette's own ANSI role at the
+            // same index (see extraAccentFallbackKeys).
+            return root.paletteColor(palette, roleKey,
+                root.paletteColor(palette, root.extraAccentFallbackKeys[extraIndex], root.fallbackColor(roleKey)))
         }
         return root.paletteColor(palette, roleKey, root.fallbackColor(roleKey))
     }
@@ -102,6 +158,35 @@ Item {
 
     function resetColours() {
         root.colorOverridesCommitted({})
+    }
+
+    function addAccent() {
+        if (root.extraAccentCount >= root.extraAccentKeys.length)
+            return
+        const index = root.extraAccentCount
+        const key = root.extraAccentKeys[index]
+        const palette = root.paletteFor(root.selectedVariant)
+        const defaultColor = root.paletteColor(palette, root.extraAccentFallbackKeys[index], root.accentColor)
+        // Set directly rather than through commitRole(): if this default
+        // happens to equal presetColor's own fallback, commitRole would
+        // treat it as "unchanged" and drop it instead of adding it.
+        const next = root.copyColors(root.stagedColors)
+        next[key] = defaultColor
+        root.colorOverridesCommitted(next)
+        root.activeRoleIndex = 1 + index
+    }
+
+    function removeLastAccent() {
+        if (root.extraAccentCount === 0)
+            return
+        const key = root.extraAccentKeys[root.extraAccentCount - 1]
+        const next = root.copyColors(root.stagedColors)
+        // An explicit empty string (not deleting the key) is required so
+        // this clears an accent already persisted from a prior Apply, not
+        // just a value staged this session.
+        next[key] = ""
+        root.colorOverridesCommitted(next)
+        root.activeRoleIndex = 0
     }
 
     function openCustomColours() {
@@ -580,6 +665,36 @@ Item {
                     }
                 }
 
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: root.extraAccentCount < root.extraAccentKeys.length
+                    spacing: Style.space(7)
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: "Add another accent for a multi-colour border gradient (Window → Border style → Dual accent)."
+                            + " Up to " + (1 + root.extraAccentKeys.length) + " accents total, split evenly."
+                        color: root.foregroundColor
+                        opacity: 0.56
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.caption
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Button {
+                        Layout.preferredWidth: Style.space(120)
+                        Layout.preferredHeight: Style.space(34)
+                        text: "Add contrast"
+                        fontSize: Style.font.caption
+                        foreground: root.foregroundColor
+                        accent: root.accentColor
+                        background: Util.alpha(root.foregroundColor, 0.045)
+                        bordered: true
+                        enabled: root.controlsEnabled
+                        onClicked: root.addAccent()
+                    }
+                }
+
                 Components.ColorRoleEditor {
                     Layout.fillWidth: true
                     roleKey: root.activeRole.key
@@ -591,6 +706,36 @@ Item {
                     enabled: root.controlsEnabled
                     onValueEdited: root.commitRole(roleKey, hex)
                     onResetRequested: root.commitRole(roleKey, presetValue)
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: root.extraAccentCount > 0
+                        && root.extraAccentIndex(root.activeRole.key) === root.extraAccentCount - 1
+                    spacing: Style.space(7)
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: "Remove this accent from the border gradient."
+                        color: root.foregroundColor
+                        opacity: 0.56
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.caption
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Button {
+                        Layout.preferredWidth: Style.space(120)
+                        Layout.preferredHeight: Style.space(34)
+                        text: "Remove accent"
+                        fontSize: Style.font.caption
+                        foreground: Color.urgent
+                        accent: Color.urgent
+                        background: Util.alpha(Color.urgent, 0.08)
+                        bordered: true
+                        enabled: root.controlsEnabled
+                        onClicked: root.removeLastAccent()
+                    }
                 }
 
                 RowLayout {

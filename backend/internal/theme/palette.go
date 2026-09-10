@@ -10,6 +10,9 @@ type Palette struct {
 
 	Accent    string
 	Accent2   string
+	Accent3   string
+	Accent4   string
+	Accent5   string
 	Selection string
 	Muted     string
 
@@ -45,11 +48,21 @@ func (p Palette) Validate() error {
 		return fmt.Errorf("invalid mode %q", p.Mode)
 	}
 
-	// Accent2 is an optional second accent used only by the Dual accent border
-	// gradient. Unlike the required roles below, an unset Accent2 is valid and
-	// falls back to Magenta at render time.
-	if p.Accent2 != "" && !validHex(p.Accent2) {
-		return fmt.Errorf("invalid accent2 color %q", p.Accent2)
+	// Accent2-5 are optional extra accents used only by the multi-accent
+	// border gradient. Unlike the required roles below, they're each valid
+	// when unset; ActiveAccents() takes the contiguous prefix that is set.
+	for _, extra := range []struct {
+		name  string
+		value string
+	}{
+		{"accent2", p.Accent2},
+		{"accent3", p.Accent3},
+		{"accent4", p.Accent4},
+		{"accent5", p.Accent5},
+	} {
+		if extra.value != "" && !validHex(extra.value) {
+			return fmt.Errorf("invalid %s color %q", extra.name, extra.value)
+		}
 	}
 
 	colors := []struct {
@@ -98,6 +111,22 @@ func (p Palette) Validate() error {
 	}
 
 	return nil
+}
+
+// ActiveAccents returns the accents to use for the multi-accent border
+// gradient: Accent, then Accent2..Accent5 in order, stopping at the first one
+// that isn't set. An extra accent set out of sequence (e.g. Accent3 set while
+// Accent2 is empty) is ignored, since the UI only ever adds/removes from the
+// end of the list.
+func (p Palette) ActiveAccents() []string {
+	accents := []string{p.Accent}
+	for _, extra := range []string{p.Accent2, p.Accent3, p.Accent4, p.Accent5} {
+		if !validHex(extra) {
+			break
+		}
+		accents = append(accents, extra)
+	}
+	return accents
 }
 
 func validHex(value string) bool {

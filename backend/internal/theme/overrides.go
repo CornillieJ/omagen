@@ -2,11 +2,26 @@ package theme
 
 import "fmt"
 
+// optionalAccentRole reports whether role is one of the extra, optional
+// accents (Accent2-5). An empty value for one of these means "unset this
+// accent" rather than an invalid color, since a prior Apply may already have
+// persisted a real value for it that this override needs to clear.
+func optionalAccentRole(role string) bool {
+	switch role {
+	case "accent2", "accent3", "accent4", "accent5":
+		return true
+	}
+	return false
+}
+
 // ApplyColorOverrides applies Studio's stable semantic colour vocabulary to a
 // generated palette without changing the source candidate on disk.
 func ApplyColorOverrides(palette Palette, overrides map[string]string) (Palette, error) {
 	for role, value := range overrides {
-		if !validHex(value) {
+		if value == "" && !optionalAccentRole(role) {
+			return Palette{}, fmt.Errorf("invalid %s color %q", role, value)
+		}
+		if value != "" && !validHex(value) {
 			return Palette{}, fmt.Errorf("invalid %s color %q", role, value)
 		}
 		switch role {
@@ -14,6 +29,12 @@ func ApplyColorOverrides(palette Palette, overrides map[string]string) (Palette,
 			palette.Accent = value
 		case "accent2":
 			palette.Accent2 = value
+		case "accent3":
+			palette.Accent3 = value
+		case "accent4":
+			palette.Accent4 = value
+		case "accent5":
+			palette.Accent5 = value
 		case "selection":
 			palette.Selection = value
 		case "muted":

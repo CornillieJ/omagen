@@ -7,10 +7,11 @@ import (
 	"testing"
 )
 
-func TestColorsRoundTripsAccent2(t *testing.T) {
+func TestColorsRoundTripsExtraAccents(t *testing.T) {
 	dir := t.TempDir()
 	p := Palette{
-		Mode: "dark", Accent: "#ff2d95", Accent2: "#2de0c8", Selection: "#222222", Muted: "#333333",
+		Mode: "dark", Accent: "#ff2d95", Accent2: "#2de0c8", Accent3: "#f5d90a", Accent4: "#7a5cff", Accent5: "#22c55e",
+		Selection: "#222222", Muted: "#333333",
 		Background: "#444444", DarkBackground: "#555555", DarkerBackground: "#666666", LighterBackground: "#777777",
 		Foreground: "#888888", DarkForeground: "#999999", LightForeground: "#aaaaaa", BrightForeground: "#bbbbbb",
 		Red: "#cc0000", Yellow: "#ccaa00", Orange: "#cc6600", Green: "#00cc00", Cyan: "#00cccc", Blue: "#0000cc", Magenta: "#cc00cc", Brown: "#996633",
@@ -23,8 +24,8 @@ func TestColorsRoundTripsAccent2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Accent2 != "#2de0c8" {
-		t.Fatalf("Accent2 = %q, want #2de0c8", got.Accent2)
+	if got.Accent2 != "#2de0c8" || got.Accent3 != "#f5d90a" || got.Accent4 != "#7a5cff" || got.Accent5 != "#22c55e" {
+		t.Fatalf("extra accents = %+v, want Accent2=#2de0c8 Accent3=#f5d90a Accent4=#7a5cff Accent5=#22c55e", got)
 	}
 }
 
@@ -44,15 +45,17 @@ func TestColorsOmitAccent2WhenUnset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(data), "accent2") {
-		t.Fatalf("colors.toml unexpectedly contains accent2:\n%s", data)
+	for _, key := range []string{"accent2", "accent3", "accent4", "accent5"} {
+		if strings.Contains(string(data), key) {
+			t.Fatalf("colors.toml unexpectedly contains %s:\n%s", key, data)
+		}
 	}
 	got, err := ReadColors(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Accent2 != "" {
-		t.Fatalf("Accent2 = %q, want empty", got.Accent2)
+	if got.Accent2 != "" || got.Accent3 != "" || got.Accent4 != "" || got.Accent5 != "" {
+		t.Fatalf("extra accents = %+v, want all empty", got)
 	}
 }
 

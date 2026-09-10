@@ -29,15 +29,42 @@ func TestApplyColorOverridesSetsAccent2(t *testing.T) {
 		BrightRed: "#FF0000", BrightYellow: "#FFFF00", BrightGreen: "#00FF00", BrightCyan: "#00FFFF", BrightBlue: "#0000FF", BrightMagenta: "#FF00FF",
 	}
 
-	result, err := ApplyColorOverrides(base, map[string]string{"accent": "#FF2D95", "accent2": "#2DE0C8"})
+	result, err := ApplyColorOverrides(base, map[string]string{
+		"accent": "#FF2D95", "accent2": "#2DE0C8", "accent3": "#F5D90A", "accent4": "#7A5CFF", "accent5": "#22C55E",
+	})
 	if err != nil {
 		t.Fatalf("ApplyColorOverrides() error = %v", err)
 	}
-	if result.Accent != "#FF2D95" || result.Accent2 != "#2DE0C8" {
-		t.Fatalf("overrides not applied: accent=%s accent2=%s", result.Accent, result.Accent2)
+	if result.Accent != "#FF2D95" || result.Accent2 != "#2DE0C8" || result.Accent3 != "#F5D90A" || result.Accent4 != "#7A5CFF" || result.Accent5 != "#22C55E" {
+		t.Fatalf("overrides not applied: %+v", result)
 	}
 	if err := result.Validate(); err != nil {
 		t.Fatalf("Validate() error = %v", err)
+	}
+}
+
+func TestApplyColorOverridesClearsOptionalAccentWithEmptyValue(t *testing.T) {
+	base := Palette{
+		Mode: "dark", Accent: "#111111", Accent2: "#2de0c8", Selection: "#222222", Muted: "#333333",
+		Background: "#444444", DarkBackground: "#555555", DarkerBackground: "#666666", LighterBackground: "#777777",
+		Foreground: "#888888", DarkForeground: "#999999", LightForeground: "#AAAAAA", BrightForeground: "#BBBBBB",
+		Red: "#CC0000", Yellow: "#CCAA00", Orange: "#CC6600", Green: "#00CC00", Cyan: "#00CCCC", Blue: "#0000CC", Magenta: "#CC00CC", Brown: "#996633",
+		BrightRed: "#FF0000", BrightYellow: "#FFFF00", BrightGreen: "#00FF00", BrightCyan: "#00FFFF", BrightBlue: "#0000FF", BrightMagenta: "#FF00FF",
+	}
+
+	result, err := ApplyColorOverrides(base, map[string]string{"accent2": ""})
+	if err != nil {
+		t.Fatalf("ApplyColorOverrides() error = %v", err)
+	}
+	if result.Accent2 != "" {
+		t.Fatalf("Accent2 = %q, want cleared to empty", result.Accent2)
+	}
+}
+
+func TestApplyColorOverridesRejectsEmptyValueForRequiredRole(t *testing.T) {
+	base := Palette{Mode: "dark"}
+	if _, err := ApplyColorOverrides(base, map[string]string{"accent": ""}); err == nil {
+		t.Fatal("ApplyColorOverrides() unexpectedly accepted an empty required role")
 	}
 }
 
