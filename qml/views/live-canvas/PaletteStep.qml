@@ -28,6 +28,7 @@ Item {
 
     readonly property var editableRoles: [
         { key: "accent", label: "Accent", description: "Focus, controls, and the main visual signal." },
+        { key: "accent2", label: "Accent 2", description: "Second accent for the Dual accent border gradient (Window → Border style)." },
         { key: "background", label: "Background", description: "The base desktop and terminal surface." },
         { key: "foreground", label: "Foreground", description: "Readable text and icon colour." },
         { key: "selection", label: "Selection", description: "Highlights used by editors and interactive surfaces." }
@@ -63,8 +64,14 @@ Item {
     }
 
     function presetColor(roleKey) {
-        return root.paletteColor(root.paletteFor(root.selectedVariant), roleKey,
-            root.fallbackColor(roleKey))
+        const palette = root.paletteFor(root.selectedVariant)
+        if (roleKey === "accent2") {
+            // Mirrors the backend's Dual accent border fallback: an unset
+            // Accent 2 defaults to this palette's own Magenta role.
+            return root.paletteColor(palette, "accent2",
+                root.paletteColor(palette, "magenta", root.fallbackColor(roleKey)))
+        }
+        return root.paletteColor(palette, roleKey, root.fallbackColor(roleKey))
     }
 
     function editorColor(roleKey) {

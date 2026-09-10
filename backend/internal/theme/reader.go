@@ -36,6 +36,8 @@ func ReadColors(themeDir string) (Palette, error) {
 			palette.Mode = value
 		case "accent":
 			palette.Accent = value
+		case "accent2":
+			palette.Accent2 = value
 		case "selection":
 			palette.Selection = value
 		case "muted":

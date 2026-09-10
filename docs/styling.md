@@ -68,9 +68,12 @@ can be Previewed or tested live before Apply.
 Window controls are:
 
 - **Active border:** Solid, Split Top, Split Bottom, Accent Blend, Neon Blend,
-  or Spinning Accent. Neon Blend adds a soft compositor glow/halo and a
-  continuously moving gradient around the focused window. Spinning Accent
-  keeps the gradient moving without the neon halo.
+  Spinning Accent, or Dual Accent. Neon Blend adds a soft compositor glow/halo
+  and a continuously moving gradient around the focused window. Spinning
+  Accent keeps the gradient moving without the neon halo. Dual Accent draws a
+  fixed 45° gradient between **Accent** and the **Accent 2** color set in
+  Custom colours (Palette step); if Accent 2 is never set it falls back to the
+  palette's Magenta role.
 - **Border thickness:** A slider starting at **Default** (inherit the active
   theme), followed by **None** and fixed 1–24 px values.
 - **Corner shape:** Five fixed presets — Native, Subtle, Soft, Rounded, and Pill.

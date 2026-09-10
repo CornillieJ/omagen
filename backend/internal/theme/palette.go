@@ -9,6 +9,7 @@ type Palette struct {
 	Mode string
 
 	Accent    string
+	Accent2   string
 	Selection string
 	Muted     string
 
@@ -42,6 +43,13 @@ type Palette struct {
 func (p Palette) Validate() error {
 	if p.Mode != "dark" && p.Mode != "light" {
 		return fmt.Errorf("invalid mode %q", p.Mode)
+	}
+
+	// Accent2 is an optional second accent used only by the Dual accent border
+	// gradient. Unlike the required roles below, an unset Accent2 is valid and
+	// falls back to Magenta at render time.
+	if p.Accent2 != "" && !validHex(p.Accent2) {
+		return fmt.Errorf("invalid accent2 color %q", p.Accent2)
 	}
 
 	colors := []struct {

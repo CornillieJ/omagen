@@ -23,6 +23,11 @@ func WriteColors(
 		"colors.toml",
 	)
 
+	var accent2Line string
+	if palette.Accent2 != "" {
+		accent2Line = fmt.Sprintf("accent2 = %q\n", palette.Accent2)
+	}
+
 	content := fmt.Sprintf(
 		`mode = %q
 
@@ -88,6 +93,7 @@ bright_magenta = %q
 		palette.BrightBlue,
 		palette.BrightMagenta,
 	)
+	content += accent2Line
 
 	if err := fsutil.AtomicWriteFile(path, []byte(content), 0o644); err != nil {
 		return fmt.Errorf(

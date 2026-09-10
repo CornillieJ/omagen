@@ -204,6 +204,36 @@ func TestWriteHyprlandNeonAddsFocusedWindowGlow(t *testing.T) {
 	}
 }
 
+func TestWriteHyprlandDualUsesAccent2Gradient(t *testing.T) {
+	p := Palette{Foreground: "#e5e7eb", DarkForeground: "#72767d", Accent: "#ff2d95", Accent2: "#2de0c8", Magenta: "#cc55ee"}
+	dir := t.TempDir()
+	if err := WriteHyprland(dir, p, "dual", 0, "native", "native", "native", "native"); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "hyprland.lua"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := `colors = { "rgb(ff2d95)", "rgb(2de0c8)" }, angle = 45`; !strings.Contains(string(data), want) {
+		t.Errorf("generated dual hyprland.lua missing %q:\n%s", want, data)
+	}
+}
+
+func TestWriteHyprlandDualFallsBackToMagentaWithoutAccent2(t *testing.T) {
+	p := Palette{Foreground: "#e5e7eb", DarkForeground: "#72767d", Accent: "#ff2d95", Magenta: "#cc55ee"}
+	dir := t.TempDir()
+	if err := WriteHyprland(dir, p, "dual", 0, "native", "native", "native", "native"); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "hyprland.lua"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := `colors = { "rgb(ff2d95)", "rgb(cc55ee)" }, angle = 45`; !strings.Contains(string(data), want) {
+		t.Errorf("generated dual hyprland.lua missing fallback %q:\n%s", want, data)
+	}
+}
+
 func TestWriteHyprlandInactiveModes(t *testing.T) {
 	p := Palette{Foreground: "#e5e7eb", DarkForeground: "#72767d", DarkerBackground: "#050607", Accent: "#aa33cc"}
 	for _, style := range []struct {
