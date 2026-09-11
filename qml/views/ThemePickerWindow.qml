@@ -119,7 +119,12 @@ PanelWindow {
                 Layout.fillHeight: true
                 visible: root.themes.length > 0
                 clip: true
-                ScrollBar.vertical: Components.ThickScrollBar {}
+                ScrollBar.vertical: Components.ThickScrollBar {
+                    parent: themeScroll
+                    x: themeScroll.mirrored ? 0 : themeScroll.width - width
+                    y: themeScroll.topPadding
+                    height: themeScroll.availableHeight
+                }
 
                 WheelHandler {
                     onWheel: function(event) {
