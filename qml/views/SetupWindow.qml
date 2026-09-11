@@ -186,7 +186,7 @@ PanelWindow {
                                 return;
                             contentScroller.cancelFlick();
                             const maximum = Math.max(0, contentScroller.contentHeight - contentScroller.height);
-                            contentScroller.contentY = Math.max(0, Math.min(maximum, contentScroller.contentY - event.angleDelta.y / 2));
+                            contentScroller.contentY = Math.max(0, Math.min(maximum, contentScroller.contentY - event.angleDelta.y));
                             event.accepted = true;
                         }
                     }

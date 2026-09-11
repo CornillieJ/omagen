@@ -397,13 +397,13 @@ PanelWindow {
                     }
                 }
 
-                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                ScrollBar.vertical: Components.ThickScrollBar {}
 
                 WheelHandler {
                     onWheel: function(event) {
                         if (!scrollArea.interactive || event.angleDelta.y === 0)
                             return
-                        scrollArea.scrollBy(-event.angleDelta.y / 2)
+                        scrollArea.scrollBy(-event.angleDelta.y)
                         event.accepted = true
                     }
                 }

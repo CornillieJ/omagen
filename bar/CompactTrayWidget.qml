@@ -814,7 +814,18 @@ BarWidget {
                 flickableDirection: Flickable.VerticalFlick
                 interactive: contentHeight > height
 
-                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                ScrollBar.vertical: Bar.ThickScrollBar {}
+
+                WheelHandler {
+                    onWheel: function(event) {
+                        if (!trayMenuFlick.interactive || event.angleDelta.y === 0)
+                            return
+                        trayMenuFlick.cancelFlick()
+                        const maximum = Math.max(0, trayMenuFlick.contentHeight - trayMenuFlick.height)
+                        trayMenuFlick.contentY = Math.max(0, Math.min(maximum, trayMenuFlick.contentY - event.angleDelta.y))
+                        event.accepted = true
+                    }
+                }
 
                 Column {
                     id: trayMenuColumn

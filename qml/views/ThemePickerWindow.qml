@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Commons
 import qs.Ui
+import "../components" as Components
 
 PanelWindow {
     id: root
@@ -118,7 +119,19 @@ PanelWindow {
                 Layout.fillHeight: true
                 visible: root.themes.length > 0
                 clip: true
-                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                ScrollBar.vertical: Components.ThickScrollBar {}
+
+                WheelHandler {
+                    onWheel: function(event) {
+                        const flick = themeScroll.contentItem
+                        if (!flick || flick.contentHeight <= flick.height || event.angleDelta.y === 0)
+                            return
+                        flick.cancelFlick()
+                        const maximum = Math.max(0, flick.contentHeight - flick.height)
+                        flick.contentY = Math.max(0, Math.min(maximum, flick.contentY - event.angleDelta.y))
+                        event.accepted = true
+                    }
+                }
 
                 GridLayout {
                     id: themeGrid
